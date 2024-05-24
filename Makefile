@@ -28,3 +28,15 @@ relay: daemon
 
 mock: daemon
 	MOCK=true ./$(DAEMON)
+
+test: daemon cli
+	MOCK=true ./$(DAEMON) 2>&1 /dev/null &
+
+	# run cli
+	./$(CLI) subscribe -address "0xae2fc483527b8ef99eb5d9b44875f005ba1fae13"
+	# time sleep 11s # wait for getTransactions
+	sleep 11
+	./$(CLI) getTransactions -address "0xae2fc483527b8ef99eb5d9b44875f005ba1fae13"
+
+	# kill daemon
+	pkill $(DAEMON)

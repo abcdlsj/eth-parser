@@ -21,7 +21,7 @@ type Parser interface {
 
 type EthParser struct {
 	curBlock     int
-	subsAddrs    map[string]bool
+	subs         SubscribeStorage
 	fetchBlockCh chan int
 	doneBlockCh  chan int
 	trans        TransStorage
@@ -37,9 +37,10 @@ type EthParser struct {
 
 func NewEthParser() *EthParser {
 	ethp := &EthParser{
-		subsAddrs:    make(map[string]bool),
-		trans:        NewInMemoryStorage(),
-		ec:           NewEthEndpointClient("https://cloudflare-eth.com"),
+		subs:  NewInMemorySubsStorage(),
+		trans: NewInMemoryStorage(),
+		ec:    NewEthEndpointClient("https://cloudflare-eth.com"),
+
 		tk:           time.NewTicker(10 * time.Second),
 		fetchBlockCh: make(chan int, 10),
 		doneBlockCh:  make(chan int, 10),
@@ -68,13 +69,7 @@ func (ep *EthParser) SetCurrentBlock(blockNumber int) {
 }
 
 func (ep *EthParser) Subscribe(address string) bool {
-	ep.mu.Lock()
-	defer ep.mu.Unlock()
-	if _, exists := ep.subsAddrs[address]; exists {
-		return false
-	}
-	ep.subsAddrs[address] = true
-	return true
+	return ep.subs.Subscribe(address)
 }
 
 func (ep *EthParser) GetTransactions(address string) []Transaction {
@@ -124,11 +119,11 @@ func (ep *EthParser) fetchTrans(blockNumber int) {
 
 	for _, tx := range block.Result.Transactions {
 		// fmt.Printf("hash: %s, from: %s, to: %s\n", tx.Hash, tx.From, tx.To)
-		if _, exists := ep.subsAddrs[tx.From]; exists {
+		if exists := ep.subs.IsSubscribed(tx.From); exists {
 			transMap[tx.From] = append(transMap[tx.From], tx)
 		}
 
-		if _, exists := ep.subsAddrs[tx.To]; exists {
+		if exists := ep.subs.IsSubscribed(tx.To); exists {
 			transMap[tx.To] = append(transMap[tx.To], tx)
 		}
 	}
@@ -198,7 +193,7 @@ func (ep *EthParser) Stop() {
 }
 
 func (ep *EthParser) SaveRelay() {
-	f, err := os.Create("relay.json")
+	f, err := os.Create("testdata/relay.json")
 
 	if err != nil {
 		log.Fatal(err)

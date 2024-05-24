@@ -42,6 +42,12 @@ func main() {
 		json.NewEncoder(w).Encode(transactions)
 	})
 
+	if os.Getenv("RELAY") == "true" {
+		http.HandleFunc("/saveRelay", func(w http.ResponseWriter, r *http.Request) {
+			parser.SaveRelay()
+		})
+	}
+
 	fmt.Println("Eth parser server is running on port 8080")
 	http.ListenAndServe(":"+orEnv("PORT", "8080"), nil)
 }

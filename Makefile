@@ -9,7 +9,7 @@ GOCLEAN=$(GOCMD) clean
 DAEMON_SRC=cmd/server/main.go
 CLI_SRC=cmd/cli/main.go
 
-.PHONY: all clean daemon cli
+.PHONY: all clean daemon cli relay
 
 all: daemon cli
 
@@ -22,3 +22,9 @@ cli:
 clean:
 	$(GOCLEAN)
 	rm -f $(DAEMON) $(CLI)
+
+relay: daemon
+	RELAY=true ./$(DAEMON)
+
+mock: daemon
+	MOCK=true ./$(DAEMON)

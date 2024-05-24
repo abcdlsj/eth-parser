@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"encoding/json"
 	"log"
+	"os"
 	"sync"
 	"time"
 )
@@ -24,14 +26,17 @@ type EthParser struct {
 	doneBlockCh  chan int
 	trans        TransStorage
 	tk           *time.Ticker
-	ec           *EthEndpointClient
+	ec           EthEndpointClientI
 	mu           sync.RWMutex
 	wg           sync.WaitGroup
 	stopCh       chan struct{}
+
+	relay       bool // if relay, will presist transactions to file
+	relayBlocks []relayBlock
 }
 
 func NewEthParser() *EthParser {
-	return &EthParser{
+	ethp := &EthParser{
 		subsAddrs:    make(map[string]bool),
 		trans:        NewInMemoryStorage(),
 		ec:           NewEthEndpointClient("https://cloudflare-eth.com"),
@@ -39,7 +44,15 @@ func NewEthParser() *EthParser {
 		fetchBlockCh: make(chan int, 10),
 		doneBlockCh:  make(chan int, 10),
 		stopCh:       make(chan struct{}),
+
+		relay: os.Getenv("RELAY") == "true",
 	}
+
+	if os.Getenv("MOCK") == "true" {
+		ethp.ec = NewMockEthEndpointClient()
+	}
+
+	return ethp
 }
 
 func (ep *EthParser) GetCurrentBlock() int {
@@ -89,10 +102,11 @@ type GetBlockNumberResp struct {
 }
 
 type Transaction struct {
-	Hash  string `json:"hash"`
-	From  string `json:"from"`
-	To    string `json:"to"`
-	Value string `json:"value"`
+	Hash        string `json:"hash"`
+	From        string `json:"from"`
+	To          string `json:"to"`
+	Value       string `json:"value"`
+	BlockNumber string `json:"blockNumber"`
 }
 
 func (ep *EthParser) fetchTrans(blockNumber int) {
@@ -100,6 +114,10 @@ func (ep *EthParser) fetchTrans(blockNumber int) {
 	block, err := ep.ec.GetBlockByNumber(blockNumber)
 	if err != nil {
 		return
+	}
+
+	if ep.relay {
+		ep.relayBlocks = append(ep.relayBlocks, relayBlock{blockNumber, block})
 	}
 
 	transMap := map[string][]Transaction{}
@@ -177,4 +195,23 @@ func (ep *EthParser) Run() {
 func (ep *EthParser) Stop() {
 	close(ep.stopCh)
 	ep.wg.Wait()
+}
+
+func (ep *EthParser) SaveRelay() {
+	f, err := os.Create("relay.json")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer f.Close()
+
+	json.NewEncoder(f).Encode(ep.relayBlocks)
+
+	log.Printf("relay saved")
+}
+
+type relayBlock struct {
+	BlockNumber int
+	Block       *GetBlockByNumberResp
 }

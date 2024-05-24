@@ -7,6 +7,11 @@ import (
 	"strconv"
 )
 
+type EthEndpointClientI interface {
+	GetBlockByNumber(blockNumber int) (*GetBlockByNumberResp, error)
+	GetBlockNumber() (int, error)
+}
+
 const (
 	APIMethodGetBlockByNumber = "eth_getBlockByNumber"
 	APIMethodGetBlockNumber   = "eth_blockNumber"

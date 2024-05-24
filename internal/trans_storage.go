@@ -11,7 +11,7 @@ type TransStorage interface {
 }
 
 type InMemoryStorage struct {
-	trans map[string][]Transaction
+	trans map[string][]Transaction // address -> transactions
 
 	mu sync.RWMutex
 }

@@ -30,6 +30,11 @@
   - `env.go` - defines and initializes environment variables
   - `parser.go` - implements parser, provides `Run` function to loop check for new blocks (every 12 seconds)
   - `storage.go` - abstracts storage (`TransStorage` | `SubscribeStorage`) interface, implements in-memory storage
+- `unit tests` - contains unit tests
+  - `endpoint_test.go` - unit tests for `endpoint`
+  - `storage_test.go` - unit tests for `parser`
+
+unit tests: `go test ./...`
 
 ## Usage
 

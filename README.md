@@ -1,5 +1,8 @@
 ### ETH Parser
 
+![demo](demo.gif)
+
+
 ## Structure
 
 ```

@@ -20,7 +20,9 @@ type Parser interface {
 }
 
 type EthParser struct {
-	curBlock     int
+	latestBlock  int
+	fetchedBlock int // fetched block is the last block that was parsed
+
 	subs         SubscribeStorage
 	fetchBlockCh chan int
 	doneBlockCh  chan int
@@ -59,21 +61,33 @@ func NewEthParser() *EthParser {
 func (ep *EthParser) GetCurrentBlock() int {
 	ep.mu.RLock()
 	defer ep.mu.RUnlock()
-	return ep.curBlock
+	return ep.fetchedBlock
 }
 
-func (ep *EthParser) SetCurrentBlock(blockNumber int) {
+func (ep *EthParser) SetLatestBlock(bn int) {
 	ep.mu.Lock()
 	defer ep.mu.Unlock()
-	ep.curBlock = blockNumber
+	if bn <= ep.latestBlock {
+		return
+	}
+	ep.latestBlock = bn
 }
 
-func (ep *EthParser) Subscribe(address string) bool {
-	return ep.subs.Subscribe(address)
+func (ep *EthParser) SetFetchedBlock(bn int) {
+	ep.mu.Lock()
+	defer ep.mu.Unlock()
+	if bn <= ep.fetchedBlock {
+		return
+	}
+	ep.fetchedBlock = bn
 }
 
-func (ep *EthParser) GetTransactions(address string) []Transaction {
-	ts, err := ep.trans.GetAddressTrans(address)
+func (ep *EthParser) Subscribe(addr string) bool {
+	return ep.subs.Subscribe(addr)
+}
+
+func (ep *EthParser) GetTransactions(addr string) []Transaction {
+	ts, err := ep.trans.GetAddressTrans(addr)
 	if err != nil {
 		return nil
 	}
@@ -134,21 +148,20 @@ func (ep *EthParser) fetchTrans(blockNumber int) {
 }
 
 func (ep *EthParser) Run() {
-	var wg sync.WaitGroup
-
-	wg.Add(3)
-
+	ep.wg.Add(1)
 	go func() {
-		defer wg.Done()
+		defer ep.wg.Done()
 		for bn := range ep.doneBlockCh {
-			ep.SetCurrentBlock(bn)
+			ep.SetFetchedBlock(bn)
 		}
 	}()
 
+	ep.wg.Add(1)
 	go func() {
-		defer wg.Done()
+		defer ep.wg.Done()
 		for bn := range ep.fetchBlockCh {
 			ep.wg.Add(1)
+			log.Printf("[parser] Fetching block %d\n", bn)
 			go ep.fetchTrans(bn)
 			ep.doneBlockCh <- bn
 		}
@@ -158,38 +171,41 @@ func (ep *EthParser) Run() {
 	if err != nil {
 		log.Fatalf("failed to get init block number: %v", err)
 	}
-	ep.SetCurrentBlock(initblock)
 
-	go func() {
-		defer wg.Done()
-		for {
-			select {
-			case <-ep.tk.C:
-				blockNumber, err := ep.ec.GetBlockNumber()
-				if err != nil {
-					continue
-				}
-				log.Printf("current block: %d", blockNumber)
-				if blockNumber > ep.curBlock {
-					for i := ep.curBlock + 1; i <= blockNumber; i++ {
-						ep.fetchBlockCh <- i
-					}
-				}
-			case <-ep.stopCh:
-				close(ep.fetchBlockCh)
-				close(ep.doneBlockCh)
-				ep.tk.Stop()
-				return
+	ep.SetLatestBlock(initblock)
+	ep.SetFetchedBlock(initblock)
+
+	for {
+		select {
+		case <-ep.tk.C:
+			blockNumber, err := ep.ec.GetBlockNumber()
+			if err != nil {
+				continue
 			}
-		}
-	}()
+			log.Printf("[parser] Latest: %d, Ethlast: %d, Parsed: %d\n", ep.latestBlock, blockNumber, ep.fetchedBlock)
+			if blockNumber > ep.latestBlock {
+				for i := ep.latestBlock + 1; i <= blockNumber; i++ {
+					ep.fetchBlockCh <- i
+				}
+			}
+			ep.SetLatestBlock(blockNumber)
 
-	wg.Wait()
+		case <-ep.stopCh:
+			return
+		}
+	}
 }
 
 func (ep *EthParser) Stop() {
+	log.Println("[parser] Closing fetchBlockCh/doneBlockCh/ticker")
+	close(ep.fetchBlockCh)
+	close(ep.doneBlockCh)
 	close(ep.stopCh)
+	ep.tk.Stop()
+
+	log.Println("[parser] Waiting for workers...")
 	ep.wg.Wait()
+	log.Println("[parser] Stopped")
 }
 
 func (ep *EthParser) SaveRelay() {
@@ -203,7 +219,7 @@ func (ep *EthParser) SaveRelay() {
 
 	json.NewEncoder(f).Encode(ep.relayBlocks)
 
-	log.Printf("relay saved")
+	log.Printf("Relay saved to testdata/relay.json")
 }
 
 type relayBlock struct {

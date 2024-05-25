@@ -30,13 +30,11 @@ mock: daemon
 	MOCK=true ./$(DAEMON)
 
 test: daemon cli
-	MOCK=true ./$(DAEMON) 2>&1 /dev/null &
+	MOCK=true ./$(DAEMON) 2>&1 > /dev/null &
+	sleep 1
 
-	# run cli
-	./$(CLI) subscribe -address "0xae2fc483527b8ef99eb5d9b44875f005ba1fae13"
-	# time sleep 11s # wait for getTransactions
-	sleep 11
-	./$(CLI) getTransactions -address "0xae2fc483527b8ef99eb5d9b44875f005ba1fae13"
+	./$(CLI) subscribe 0xa7efae728d2936e78bda97dc267687568dd593f3
+	sleep 20
+	./$(CLI) getTransactions 0xa7efae728d2936e78bda97dc267687568dd593f3
 
-	# kill daemon
-	pkill $(DAEMON)
+	pkill ethparser-server

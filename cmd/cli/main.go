@@ -13,42 +13,32 @@ import (
 var serverURL = "http://localhost:" + orEnv("PORT", "8080")
 
 func main() {
-	getCurrentBlockCmd := flag.NewFlagSet("getCurrentBlock", flag.ExitOnError)
-	subscribeCmd := flag.NewFlagSet("subscribe", flag.ExitOnError)
-	getTransactionsCmd := flag.NewFlagSet("getTransactions", flag.ExitOnError)
-
-	subscribeAddress := subscribeCmd.String("address", "", "The address to subscribe to")
-	getTransactionsAddress := getTransactionsCmd.String("address", "", "The address to get transactions for")
-
 	flag.StringVar(&serverURL, "server", serverURL, "The server URL")
 
-	if len(os.Args) < 2 {
-		fmt.Println("Expected 'getCurrentBlock', 'subscribe' or 'getTransactions' subcommands")
+	usage := func() {
+		fmt.Printf("Usage of %s:\n", os.Args[0])
+		fmt.Printf("  getCurrentBlock\n")
+		fmt.Printf("  subscribe <ADDRESS>\n")
+		fmt.Printf("  getTransactions <ADDRESS>\n")
+	}
+
+	if len(os.Args) < 2 || os.Args[1] == "-h" ||
+		((os.Args[1] == "subscribe" || os.Args[1] == "getTransactions") && len(os.Args) < 3) {
+		usage()
 		os.Exit(1)
 	}
 
 	switch os.Args[1] {
 	case "getCurrentBlock":
-		getCurrentBlockCmd.Parse(os.Args[2:])
 		getCurrentBlock()
 	case "subscribe":
-		subscribeCmd.Parse(os.Args[2:])
-		if *subscribeAddress == "" {
-			fmt.Println("Please provide an address to subscribe")
-			subscribeCmd.PrintDefaults()
-			os.Exit(1)
-		}
-		subscribe(*subscribeAddress)
+		address := os.Args[2]
+		subscribe(address)
 	case "getTransactions":
-		getTransactionsCmd.Parse(os.Args[2:])
-		if *getTransactionsAddress == "" {
-			fmt.Println("Please provide an address to get transactions for")
-			getTransactionsCmd.PrintDefaults()
-			os.Exit(1)
-		}
-		getTransactions(*getTransactionsAddress)
+		address := os.Args[2]
+		getTransactions(address)
 	default:
-		fmt.Println("Expected 'getCurrentBlock', 'subscribe' or 'getTransactions' subcommands")
+		usage()
 		os.Exit(1)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"time"
 )
 
 type MockEthEndpointClient struct {
@@ -34,6 +35,8 @@ func (e *MockEthEndpointClient) GetBlockByNumber(blockNumber int) (*GetBlockByNu
 		return nil, errors.New("no more blocks")
 	}
 
+	time.Sleep(1 * time.Second)
+
 	return e.blocks[e.curIdx].Block, nil
 }
 
@@ -51,5 +54,6 @@ func (e *MockEthEndpointClient) GetBlockNumber() (int, error) {
 
 	e.curIdx++
 
+	time.Sleep(1 * time.Second)
 	return e.blocks[n].BlockNumber, nil
 }

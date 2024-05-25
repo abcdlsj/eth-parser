@@ -39,3 +39,11 @@ test: daemon cli
 	./$(CLI) getTransactions 0xa7efae728d2936e78bda97dc267687568dd593f3
 
 	pkill ethparser-server
+
+lint:
+	golangci-lint run
+
+# fix field alignment, golangci-lint requires this, see https://github.com/golangci/golangci-lint/discussions/2298
+# go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest
+fix_fieldalignment:
+	fieldalignment -fix internal/*

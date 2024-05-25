@@ -1,0 +1,38 @@
+run:
+  timeout: 5m
+  tests: false
+
+linters-settings:
+  govet:
+    enable-all: true
+  gocyclo:
+    min-complexity: 10
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  gocritic:
+  goimports:
+    local-prefixes: github.com/abcdlsj/eth-parser
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - gofmt
+    - goimports
+    - ineffassign
+    - gocyclo
+    - goconst
+    - gocritic
+
+issues:
+  exclude-use-default: false
+  include:
+    - 'error strings should not be capitalized'
+
+output:
+  sort-results: true
+  print-issued-lines: true
+  uniq-by-line: true

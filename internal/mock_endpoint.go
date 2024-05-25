@@ -19,13 +19,17 @@ func NewMockEthEndpointClient() *MockEthEndpointClient {
 		log.Fatal(err)
 	}
 
+	//nolint:errcheck
 	defer f.Close()
 
 	mc := &MockEthEndpointClient{
 		curIdx: -1,
 	}
 
-	json.NewDecoder(f).Decode(&mc.blocks)
+	if err := json.NewDecoder(f).Decode(&mc.blocks); err != nil {
+		log.Printf("Error decoding relay file: %v", err)
+		return mc
+	}
 
 	return mc
 }

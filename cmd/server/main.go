@@ -42,7 +42,9 @@ func main() {
 
 	<-sig
 	log.Println("Received signal, shutting down...")
-	srv.Shutdown(context.Background())
+	if err := srv.Shutdown(context.Background()); err != nil {
+		log.Printf("Shutdown server error: %v", err)
+	}
 
 	parser.Stop()
 	if internal.RELAY_FILE == "true" {
@@ -60,7 +62,9 @@ func serverRouter(p *internal.EthParser) *http.Server {
 
 	http.HandleFunc("/getCurrentBlock", func(w http.ResponseWriter, r *http.Request) {
 		blockNumber := p.GetCurrentBlock()
-		json.NewEncoder(w).Encode(map[string]int{"current_block": blockNumber})
+		if err := json.NewEncoder(w).Encode(map[string]int{"current_block": blockNumber}); err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
 	})
 
 	http.HandleFunc("/subscribe", func(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +76,9 @@ func serverRouter(p *internal.EthParser) *http.Server {
 			return
 		}
 		success := p.Subscribe(req.Address)
-		json.NewEncoder(w).Encode(map[string]bool{"subscribed": success})
+		if err := json.NewEncoder(w).Encode(map[string]bool{"subscribed": success}); err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
 	})
 
 	http.HandleFunc("/getTransactions", func(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +88,9 @@ func serverRouter(p *internal.EthParser) *http.Server {
 			return
 		}
 		transactions := p.GetTransactions(address)
-		json.NewEncoder(w).Encode(transactions)
+		if err := json.NewEncoder(w).Encode(transactions); err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
 	})
 
 	if internal.RELAY_FLAG == "true" {

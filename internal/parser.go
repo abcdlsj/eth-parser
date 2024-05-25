@@ -20,17 +20,15 @@ type Parser interface {
 }
 
 type EthParser struct {
-	latestBlock int
-
-	subs   SubscribeStorage
-	trans  TransStorage
-	tk     *time.Ticker
-	ec     EthEndpointClientI
-	mu     sync.RWMutex
-	stopCh chan struct{}
-
-	relay       bool // if relay, will presist transactions to file
+	subs        SubscribeStorage
+	trans       TransStorage
+	ec          EthEndpointClientI
+	tk          *time.Ticker
+	stopCh      chan struct{}
 	relayBlocks []relayBlock
+	latestBlock int
+	mu          sync.RWMutex
+	relay       bool
 }
 
 func NewEthParser() *EthParser {
@@ -80,19 +78,19 @@ func (ep *EthParser) GetTransactions(addr string) []Transaction {
 }
 
 type GetBlockByNumberResp struct {
-	ID      int    `json:"id"`
 	Jsonrpc string `json:"jsonrpc"`
 	Result  struct {
 		Number       string        `json:"number"`
 		Hash         string        `json:"hash"`
 		Transactions []Transaction `json:"transactions"`
 	} `json:"result"`
+	ID int `json:"id"`
 }
 
 type GetBlockNumberResp struct {
-	ID      int    `json:"id"`
 	Jsonrpc string `json:"jsonrpc"`
 	Result  string `json:"result"`
+	ID      int    `json:"id"`
 }
 
 type Transaction struct {
@@ -107,11 +105,12 @@ func (ep *EthParser) fetchTrans(blockNumber int) {
 	log.Printf("[parser] Fetching block %d", blockNumber)
 	block, err := ep.ec.GetBlockByNumber(blockNumber)
 	if err != nil {
+		log.Printf("Error fetching block %d: %v", blockNumber, err)
 		return
 	}
 
 	if ep.relay {
-		ep.relayBlocks = append(ep.relayBlocks, relayBlock{blockNumber, block})
+		ep.relayBlocks = append(ep.relayBlocks, relayBlock{block, blockNumber})
 	}
 
 	transMap := make(map[string][]Transaction, len(block.Result.Transactions)*2) // init a length of txs, avoid re-alloc
@@ -128,7 +127,9 @@ func (ep *EthParser) fetchTrans(blockNumber int) {
 	}
 
 	for address, txs := range transMap {
-		ep.trans.BatchAdd(address, txs)
+		if err := ep.trans.BatchAdd(address, txs); err != nil {
+			log.Printf("Error saving txs for %s: %v", address, err)
+		}
 	}
 }
 
@@ -172,17 +173,22 @@ func (ep *EthParser) SaveRelay() {
 	f, err := os.Create(RELAY_FILE)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error creating relay file: %v", err)
+		return
 	}
 
+	//nolint:errcheck
 	defer f.Close()
 
-	json.NewEncoder(f).Encode(ep.relayBlocks)
+	if err := json.NewEncoder(f).Encode(ep.relayBlocks); err != nil {
+		log.Printf("Error saving relay: %v", err)
+		return
+	}
 
 	log.Printf("Relay saved to %s", RELAY_FILE)
 }
 
 type relayBlock struct {
-	BlockNumber int
 	Block       *GetBlockByNumberResp
+	BlockNumber int
 }

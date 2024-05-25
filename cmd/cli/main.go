@@ -22,7 +22,7 @@ func main() {
 	if len(os.Args) < 2 || os.Args[1] == "-h" ||
 		((os.Args[1] == "subscribe" || os.Args[1] == "getTransactions") && len(os.Args) < 3) {
 		usage()
-		os.Exit(1)
+		return
 	}
 
 	switch os.Args[1] {
@@ -36,7 +36,7 @@ func main() {
 		getTransactions(address)
 	default:
 		usage()
-		os.Exit(1)
+		return
 	}
 }
 
@@ -44,14 +44,15 @@ func getCurrentBlock() {
 	resp, err := http.Get(fmt.Sprintf("%s/getCurrentBlock", internal.ServerURL))
 	if err != nil {
 		fmt.Printf("Error getting current block: %v\n", err)
-		os.Exit(1)
+		return
 	}
+	//nolint:errcheck
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Printf("Error reading response: %v\n", err)
-		os.Exit(1)
+		return
 	}
 
 	fmt.Println(string(body))
@@ -62,20 +63,21 @@ func subscribe(address string) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		fmt.Printf("Error marshalling data: %v\n", err)
-		os.Exit(1)
+		return
 	}
 
 	resp, err := http.Post(fmt.Sprintf("%s/subscribe", internal.ServerURL), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Printf("Error subscribing to address: %v\n", err)
-		os.Exit(1)
+		return
 	}
+	//nolint:errcheck
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Printf("Error reading response: %v\n", err)
-		os.Exit(1)
+		return
 	}
 
 	fmt.Println(string(body))
@@ -85,14 +87,15 @@ func getTransactions(address string) {
 	resp, err := http.Get(fmt.Sprintf("%s/getTransactions?address=%s", internal.ServerURL, address))
 	if err != nil {
 		fmt.Printf("Error getting transactions for address: %v\n", err)
-		os.Exit(1)
+		return
 	}
+	//nolint:errcheck
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Printf("Error reading response: %v\n", err)
-		os.Exit(1)
+		return
 	}
 
 	fmt.Println(string(body))

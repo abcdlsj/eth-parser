@@ -107,6 +107,14 @@ make test
 3. `parser` design
    `Run` function initiates a loop to check for new blocks every 12 seconds. It compares the latest block locally with the incoming block. If the local block is outdated, it synchronously fetches the new block (refer to `FAQ 2`) and updates the local latest block.
 
+## golangci-lint
+
+```
+make lint
+```
+
+if `fieldalignment` error occurs, use `make fix_fieldalignment`
+
 ## FAQ
 
 1. Why implement relay mode? What does it mean?
@@ -119,10 +127,3 @@ I couldn't find a good way to self-test the `parser` because I couldn't find sui
 
 For the first few commits, I implemented concurrent fetch blocks.
 but ETH generates a new block every 12 seconds, so there is no need for concurrent fetches.
-
-## Futures
-
-There also have some points that could be improved:
-1. Add daemon configuration
-   - `MacOS`: `plist` file
-   - `Linux`: systemd service

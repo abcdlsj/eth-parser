@@ -18,9 +18,9 @@ const (
 )
 
 type JsonAPIPayload struct {
+	Params  interface{} `json:"params"`
 	JSONRPC string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
 	ID      int         `json:"id"`
 }
 
@@ -54,6 +54,7 @@ func (e *EthEndpointClient) GetBlockByNumber(blockNumber int) (*GetBlockByNumber
 		return nil, err
 	}
 
+	//nolint:errcheck
 	defer resp.Body.Close()
 
 	ret := &GetBlockByNumberResp{}
@@ -77,10 +78,11 @@ func (e *EthEndpointClient) GetBlockNumber() (int, error) {
 		return 0, err
 	}
 
+	//nolint:errcheck
 	defer resp.Body.Close()
 
 	var result GetBlockNumberResp
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return 0, err
 	}
 

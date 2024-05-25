@@ -1,6 +1,9 @@
 package internal
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 var (
 	RELAY_FILE = orEnv("RELAY_FILE", "testdata/relay.json")
@@ -9,6 +12,8 @@ var (
 	MOCK_FLAG  = orEnv("MOCK", "false")
 
 	PORT = orEnv("PORT", "8080")
+
+	ServerURL = orEnv("SERVER_URL", fmt.Sprintf("http://localhost:%s", PORT))
 )
 
 func orEnv(key, fallback string) string {

@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,11 +11,7 @@ import (
 	"github.com/abcdlsj/eth-parser/internal"
 )
 
-var serverURL = "http://localhost:" + internal.PORT
-
 func main() {
-	flag.StringVar(&serverURL, "server", serverURL, "The server URL")
-
 	usage := func() {
 		fmt.Printf("Usage of %s:\n", os.Args[0])
 		fmt.Printf("  getCurrentBlock\n")
@@ -46,7 +41,7 @@ func main() {
 }
 
 func getCurrentBlock() {
-	resp, err := http.Get(fmt.Sprintf("%s/getCurrentBlock", serverURL))
+	resp, err := http.Get(fmt.Sprintf("%s/getCurrentBlock", internal.ServerURL))
 	if err != nil {
 		fmt.Printf("Error getting current block: %v\n", err)
 		os.Exit(1)
@@ -70,7 +65,7 @@ func subscribe(address string) {
 		os.Exit(1)
 	}
 
-	resp, err := http.Post(fmt.Sprintf("%s/subscribe", serverURL), "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(fmt.Sprintf("%s/subscribe", internal.ServerURL), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Printf("Error subscribing to address: %v\n", err)
 		os.Exit(1)
@@ -87,7 +82,7 @@ func subscribe(address string) {
 }
 
 func getTransactions(address string) {
-	resp, err := http.Get(fmt.Sprintf("%s/getTransactions?address=%s", serverURL, address))
+	resp, err := http.Get(fmt.Sprintf("%s/getTransactions?address=%s", internal.ServerURL, address))
 	if err != nil {
 		fmt.Printf("Error getting transactions for address: %v\n", err)
 		os.Exit(1)

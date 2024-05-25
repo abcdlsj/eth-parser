@@ -33,7 +33,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		log.Println("Eth parser server is running on port " + orEnv("PORT", "8080"))
+		log.Println("Eth parser server is running on port " + internal.PORT)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("ListenAndServe: %v", err)
 		}
@@ -45,7 +45,7 @@ func main() {
 	srv.Shutdown(context.Background())
 
 	parser.Stop()
-	if os.Getenv("RELAY") == "true" {
+	if internal.RELAY_FILE == "true" {
 		parser.SaveRelay()
 	}
 
@@ -55,7 +55,7 @@ func main() {
 
 func serverRouter(p *internal.EthParser) *http.Server {
 	srv := http.Server{
-		Addr: ":" + orEnv("PORT", "8080"),
+		Addr: ":" + internal.PORT,
 	}
 
 	http.HandleFunc("/getCurrentBlock", func(w http.ResponseWriter, r *http.Request) {
@@ -85,18 +85,11 @@ func serverRouter(p *internal.EthParser) *http.Server {
 		json.NewEncoder(w).Encode(transactions)
 	})
 
-	if os.Getenv("RELAY") == "true" {
+	if internal.RELAY_FLAG == "true" {
 		http.HandleFunc("/saveRelay", func(w http.ResponseWriter, r *http.Request) {
 			p.SaveRelay()
 		})
 	}
 
 	return &srv
-}
-
-func orEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
 }

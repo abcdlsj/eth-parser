@@ -8,9 +8,11 @@ import (
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/abcdlsj/eth-parser/internal"
 )
 
-var serverURL = "http://localhost:" + orEnv("PORT", "8080")
+var serverURL = "http://localhost:" + internal.PORT
 
 func main() {
 	flag.StringVar(&serverURL, "server", serverURL, "The server URL")
@@ -99,11 +101,4 @@ func getTransactions(address string) {
 	}
 
 	fmt.Println(string(body))
-}
-
-func orEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
 }

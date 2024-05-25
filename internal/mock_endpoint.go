@@ -14,7 +14,7 @@ type MockEthEndpointClient struct {
 }
 
 func NewMockEthEndpointClient() *MockEthEndpointClient {
-	f, err := os.Open("testdata/relay.json")
+	f, err := os.Open(RELAY_FILE)
 	if err != nil {
 		log.Fatal(err)
 	}

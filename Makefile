@@ -29,11 +29,12 @@ relay: daemon
 mock: daemon
 	MOCK=true ./$(DAEMON)
 
+# this is for myown testing, don't use, need to record new transactions
 test: daemon cli
 	MOCK=true ./$(DAEMON) 2>&1 > /dev/null &
 	sleep 1
 
-	./$(CLI) subscribe 0xa7efae728d2936e78bda97dc267687568dd593f3
+	RELAY_FILE=testdata/relay.json ./$(CLI) subscribe 0xa7efae728d2936e78bda97dc267687568dd593f3
 	sleep 20
 	./$(CLI) getTransactions 0xa7efae728d2936e78bda97dc267687568dd593f3
 

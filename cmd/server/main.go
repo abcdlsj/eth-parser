@@ -47,7 +47,7 @@ func main() {
 	}
 
 	parser.Stop()
-	if internal.RELAY_FILE == "true" {
+	if internal.RELAY_FLAG == "true" {
 		parser.SaveRelay()
 	}
 
